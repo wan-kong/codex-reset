@@ -4,9 +4,14 @@
 # Pin to the Node version used in development (v24). Debian-slim (glibc) so
 # better-sqlite3 prebuilt binaries resolve, with a build-tool fallback.
 FROM node:24-slim AS base
+# Route all package traffic through the mirror — the build network can't reach
+# registry.npmjs.org. npm_config_registry is honored by both npm and pnpm.
 ENV PNPM_HOME="/pnpm" \
-    PATH="/pnpm:$PATH"
-RUN corepack enable
+    PATH="/pnpm:$PATH" \
+    npm_config_registry="https://registry.npmmirror.com/"
+# Install pnpm via npm instead of `corepack enable`: corepack would contact
+# registry.npmjs.org to resolve the pnpm version, which fails offline.
+RUN npm install -g pnpm@10.25.0
 WORKDIR /app
 
 # ---- Dependencies --------------------------------------------------------
@@ -17,15 +22,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --registry https://registry.npmmirror.com/
 
 # ---- Build ---------------------------------------------------------------
 FROM deps AS build
 COPY . .
 RUN pnpm build
-# Strip dev dependencies; keeps better-sqlite3 + drizzle-orm for the migrator.
-RUN pnpm prune --prod
 
 # ---- Runtime -------------------------------------------------------------
 FROM base AS runner

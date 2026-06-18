@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     image: codex-reset:latest
     container_name: codex-reset
+    network_mode: host
     restart: unless-stopped
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -14,6 +15,12 @@ services:
       # Keep the SQLite file inside the mounted data volume.
       DATABASE_URL: "file:data/codex-reset-record.sqlite"
       LOG_DIR: "logs"
+      NODE_OPTIONS: --use-env-proxy
+      PORT: 3102
+      HTTP_PROXY: http://127.0.0.1:7890
+      HTTPS_PROXY: http://127.0.0.1:7890
+      ALL_PROXY: http://127.0.0.1:7890
+      NO_PROXY: localhost,127.0.0.1
     volumes:
       - codex-data:/app/data
       - codex-logs:/app/logs

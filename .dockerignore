@@ -1,0 +1,27 @@
+node_modules
+.output
+.nitro
+.tanstack
+.cache
+.data
+dist
+build
+
+.git
+.gitignore
+.github
+
+# Local runtime state — never bake into the image
+data
+logs
+.env
+*.local
+
+.DS_Store
+*.log
+
+# Docs / editor
+.vscode
+.idea
+*.md
+!README.md

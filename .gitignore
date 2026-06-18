@@ -6,6 +6,7 @@ node_modules
 # pnpm-lock.yaml
 # bun.lock
 
+codex-reset.tar.gz
 .DS_Store
 .cache
 .env

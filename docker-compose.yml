@@ -22,15 +22,15 @@ services:
       ALL_PROXY: http://127.0.0.1:7890
       NO_PROXY: localhost,127.0.0.1
     volumes:
-      - codex-data:/app/data
-      - codex-logs:/app/logs
+      - ./data:/app/data
+      - ./logs:/app/logs
     healthcheck:
       test:
         [
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000/zh').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          "fetch('http://127.0.0.1:3102/zh').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 30s
       timeout: 5s

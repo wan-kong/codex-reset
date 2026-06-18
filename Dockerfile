@@ -28,6 +28,9 @@ RUN pnpm install --frozen-lockfile --registry https://registry.npmmirror.com/
 FROM deps AS build
 COPY . .
 RUN pnpm build
+# Strip devDependencies in place so the runtime image carries production-only
+# node_modules (native binaries stay compiled — no rebuild needed downstream).
+RUN pnpm prune --prod --ignore-scripts
 
 # ---- Runtime -------------------------------------------------------------
 FROM base AS runner
@@ -36,16 +39,19 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0
 WORKDIR /app
 
-# Self-contained Nitro server output.
-COPY --from=build /app/.output ./.output
+# Self-contained Nitro server output. Use COPY --chown so ownership is set as
+# the files land — a separate `chown -R /app` would duplicate node_modules into
+# a fresh ~500MB layer (Docker rewrites every touched file).
+COPY --from=build --chown=node:node /app/.output ./.output
 # Production deps + migration assets for the entrypoint migrate step.
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/drizzle ./drizzle
-COPY --from=build /app/scripts/migrate.mjs ./scripts/migrate.mjs
-COPY --from=build /app/package.json ./package.json
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/drizzle ./drizzle
+COPY --from=build --chown=node:node /app/scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --from=build --chown=node:node /app/package.json ./package.json
 
-# Writable data + logs for the non-root user.
-RUN mkdir -p data logs && chown -R node:node /app
+# Writable data + logs for the non-root user (no -R on /app — deps are already
+# owned by node via the COPY --chown above).
+RUN mkdir -p data logs && chown node:node data logs
 USER node
 
 EXPOSE 3000

@@ -2,11 +2,11 @@
 
 # TanStack Patterns
 
-## Route Group Conventions
+## Route Conventions
 
-- Protected routes live under `src/routes/_auth/**`, enforced by `beforeLoad` in the `_auth` layout (`src/routes/_auth/route.tsx`).
-- Guest-only routes live under `src/routes/_guest/**`, enforced by `beforeLoad` in the `_guest` layout (`src/routes/_guest/route.tsx`).
-- Auth-specific route guard behavior and middleware rules are documented in `.agents/auth.md`.
+- Localized public routes live under `src/routes/$locale/**`.
+- API endpoints live under `src/routes/api/**` using TanStack Start server routes.
+- The app currently has no authentication layer; do not add protected `_auth` or guest `_guest` route groups unless authentication is explicitly reintroduced.
 
 ## Data Fetching
 
@@ -80,7 +80,3 @@ const rolesQuery = useQuery({
 2. Direct server-only code (database clients, fs) must only be imported:
    - Inside `createServerFn` handlers
    - In `*.server.ts` files
-
-## Auth-specific Patterns
-
-- See `.agents/auth.md` for auth middleware usage, route guards, and session/cookie patterns.

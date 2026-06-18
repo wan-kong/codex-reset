@@ -1,18 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { IntroPageDeleteMe } from "#/components/_DELETE_ME_intro_page";
+import { $getPreferredLocale } from "#/lib/i18n/locale.functions";
 
 export const Route = createFileRoute("/")({
-  component: HomePage,
-});
+  beforeLoad: async () => {
+    const locale = await $getPreferredLocale();
 
-function HomePage() {
-  /**
-   * This is the intro component for TanStarter,
-   * which you may delete after creating the project,
-   * and replace it with your own homepage or landing page.
-   *
-   * Have fun!
-   */
-  return <IntroPageDeleteMe />;
-}
+    throw redirect({
+      to: "/$locale",
+      params: { locale },
+    });
+  },
+});

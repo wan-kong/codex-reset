@@ -9,21 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as GuestRouteRouteImport } from './routes/_guest/route'
-import { Route as AuthRouteRouteImport } from './routes/_auth/route'
+import { Route as LocaleRouteRouteImport } from './routes/$locale/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as GuestSignupRouteImport } from './routes/_guest/signup'
-import { Route as GuestLoginRouteImport } from './routes/_guest/login'
-import { Route as AuthAppRouteRouteImport } from './routes/_auth/app/route'
-import { Route as AuthAppIndexRouteImport } from './routes/_auth/app/index'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as LocaleIndexRouteImport } from './routes/$locale/index'
+import { Route as ApiUnsubscribeRouteImport } from './routes/api/unsubscribe'
+import { Route as LocaleUnsubscribeRouteImport } from './routes/$locale/unsubscribe'
+import { Route as ApiJobsCheckUsageRouteImport } from './routes/api/jobs/check-usage'
 
-const GuestRouteRoute = GuestRouteRouteImport.update({
-  id: '/_guest',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRouteRoute = AuthRouteRouteImport.update({
-  id: '/_auth',
+const LocaleRouteRoute = LocaleRouteRouteImport.update({
+  id: '/$locale',
+  path: '/$locale',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,96 +26,91 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuestSignupRoute = GuestSignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => GuestRouteRoute,
-} as any)
-const GuestLoginRoute = GuestLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => GuestRouteRoute,
-} as any)
-const AuthAppRouteRoute = AuthAppRouteRouteImport.update({
-  id: '/app',
-  path: '/app',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthAppIndexRoute = AuthAppIndexRouteImport.update({
+const LocaleIndexRoute = LocaleIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthAppRouteRoute,
+  getParentRoute: () => LocaleRouteRoute,
 } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
+const ApiUnsubscribeRoute = ApiUnsubscribeRouteImport.update({
+  id: '/api/unsubscribe',
+  path: '/api/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleUnsubscribeRoute = LocaleUnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => LocaleRouteRoute,
+} as any)
+const ApiJobsCheckUsageRoute = ApiJobsCheckUsageRouteImport.update({
+  id: '/api/jobs/check-usage',
+  path: '/api/jobs/check-usage',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/app': typeof AuthAppRouteRouteWithChildren
-  '/login': typeof GuestLoginRoute
-  '/signup': typeof GuestSignupRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/app/': typeof AuthAppIndexRoute
+  '/$locale': typeof LocaleRouteRouteWithChildren
+  '/$locale/unsubscribe': typeof LocaleUnsubscribeRoute
+  '/api/unsubscribe': typeof ApiUnsubscribeRoute
+  '/$locale/': typeof LocaleIndexRoute
+  '/api/jobs/check-usage': typeof ApiJobsCheckUsageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/login': typeof GuestLoginRoute
-  '/signup': typeof GuestSignupRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/app': typeof AuthAppIndexRoute
+  '/$locale/unsubscribe': typeof LocaleUnsubscribeRoute
+  '/api/unsubscribe': typeof ApiUnsubscribeRoute
+  '/$locale': typeof LocaleIndexRoute
+  '/api/jobs/check-usage': typeof ApiJobsCheckUsageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_auth': typeof AuthRouteRouteWithChildren
-  '/_guest': typeof GuestRouteRouteWithChildren
-  '/_auth/app': typeof AuthAppRouteRouteWithChildren
-  '/_guest/login': typeof GuestLoginRoute
-  '/_guest/signup': typeof GuestSignupRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/_auth/app/': typeof AuthAppIndexRoute
+  '/$locale': typeof LocaleRouteRouteWithChildren
+  '/$locale/unsubscribe': typeof LocaleUnsubscribeRoute
+  '/api/unsubscribe': typeof ApiUnsubscribeRoute
+  '/$locale/': typeof LocaleIndexRoute
+  '/api/jobs/check-usage': typeof ApiJobsCheckUsageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/login' | '/signup' | '/api/auth/$' | '/app/'
+  fullPaths:
+    | '/'
+    | '/$locale'
+    | '/$locale/unsubscribe'
+    | '/api/unsubscribe'
+    | '/$locale/'
+    | '/api/jobs/check-usage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/api/auth/$' | '/app'
+  to:
+    | '/'
+    | '/$locale/unsubscribe'
+    | '/api/unsubscribe'
+    | '/$locale'
+    | '/api/jobs/check-usage'
   id:
     | '__root__'
     | '/'
-    | '/_auth'
-    | '/_guest'
-    | '/_auth/app'
-    | '/_guest/login'
-    | '/_guest/signup'
-    | '/api/auth/$'
-    | '/_auth/app/'
+    | '/$locale'
+    | '/$locale/unsubscribe'
+    | '/api/unsubscribe'
+    | '/$locale/'
+    | '/api/jobs/check-usage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRouteRoute: typeof AuthRouteRouteWithChildren
-  GuestRouteRoute: typeof GuestRouteRouteWithChildren
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  LocaleRouteRoute: typeof LocaleRouteRouteWithChildren
+  ApiUnsubscribeRoute: typeof ApiUnsubscribeRoute
+  ApiJobsCheckUsageRoute: typeof ApiJobsCheckUsageRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_guest': {
-      id: '/_guest'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof GuestRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_auth': {
-      id: '/_auth'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthRouteRouteImport
+    '/$locale': {
+      id: '/$locale'
+      path: '/$locale'
+      fullPath: '/$locale'
+      preLoaderRoute: typeof LocaleRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -130,87 +120,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_guest/signup': {
-      id: '/_guest/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof GuestSignupRouteImport
-      parentRoute: typeof GuestRouteRoute
-    }
-    '/_guest/login': {
-      id: '/_guest/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof GuestLoginRouteImport
-      parentRoute: typeof GuestRouteRoute
-    }
-    '/_auth/app': {
-      id: '/_auth/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AuthAppRouteRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/_auth/app/': {
-      id: '/_auth/app/'
+    '/$locale/': {
+      id: '/$locale/'
       path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AuthAppIndexRouteImport
-      parentRoute: typeof AuthAppRouteRoute
+      fullPath: '/$locale/'
+      preLoaderRoute: typeof LocaleIndexRouteImport
+      parentRoute: typeof LocaleRouteRoute
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
+    '/api/unsubscribe': {
+      id: '/api/unsubscribe'
+      path: '/api/unsubscribe'
+      fullPath: '/api/unsubscribe'
+      preLoaderRoute: typeof ApiUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$locale/unsubscribe': {
+      id: '/$locale/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/$locale/unsubscribe'
+      preLoaderRoute: typeof LocaleUnsubscribeRouteImport
+      parentRoute: typeof LocaleRouteRoute
+    }
+    '/api/jobs/check-usage': {
+      id: '/api/jobs/check-usage'
+      path: '/api/jobs/check-usage'
+      fullPath: '/api/jobs/check-usage'
+      preLoaderRoute: typeof ApiJobsCheckUsageRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AuthAppRouteRouteChildren {
-  AuthAppIndexRoute: typeof AuthAppIndexRoute
+interface LocaleRouteRouteChildren {
+  LocaleUnsubscribeRoute: typeof LocaleUnsubscribeRoute
+  LocaleIndexRoute: typeof LocaleIndexRoute
 }
 
-const AuthAppRouteRouteChildren: AuthAppRouteRouteChildren = {
-  AuthAppIndexRoute: AuthAppIndexRoute,
+const LocaleRouteRouteChildren: LocaleRouteRouteChildren = {
+  LocaleUnsubscribeRoute: LocaleUnsubscribeRoute,
+  LocaleIndexRoute: LocaleIndexRoute,
 }
 
-const AuthAppRouteRouteWithChildren = AuthAppRouteRoute._addFileChildren(
-  AuthAppRouteRouteChildren,
-)
-
-interface AuthRouteRouteChildren {
-  AuthAppRouteRoute: typeof AuthAppRouteRouteWithChildren
-}
-
-const AuthRouteRouteChildren: AuthRouteRouteChildren = {
-  AuthAppRouteRoute: AuthAppRouteRouteWithChildren,
-}
-
-const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
-  AuthRouteRouteChildren,
-)
-
-interface GuestRouteRouteChildren {
-  GuestLoginRoute: typeof GuestLoginRoute
-  GuestSignupRoute: typeof GuestSignupRoute
-}
-
-const GuestRouteRouteChildren: GuestRouteRouteChildren = {
-  GuestLoginRoute: GuestLoginRoute,
-  GuestSignupRoute: GuestSignupRoute,
-}
-
-const GuestRouteRouteWithChildren = GuestRouteRoute._addFileChildren(
-  GuestRouteRouteChildren,
+const LocaleRouteRouteWithChildren = LocaleRouteRoute._addFileChildren(
+  LocaleRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRouteRoute: AuthRouteRouteWithChildren,
-  GuestRouteRoute: GuestRouteRouteWithChildren,
-  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  LocaleRouteRoute: LocaleRouteRouteWithChildren,
+  ApiUnsubscribeRoute: ApiUnsubscribeRoute,
+  ApiJobsCheckUsageRoute: ApiJobsCheckUsageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,96 +1,124 @@
-# codex-reset
+# Codex Reset Records
 
-This project was scaffolded with `create-mugnavo` from commit [`e79069c`](https://github.com/mugnavo/tanstarter/tree/e79069ce721b70dca601110d04f1884f47da0ed3). See the [template changelog](https://github.com/mugnavo/tanstarter/compare/e79069ce721b70dca601110d04f1884f47da0ed3...main) for newer changes.
+TanStack Start rewrite of the Codex reset monitor.
+
+This app monitors `https://chatgpt.com/backend-api/wham/usage`, stores every usage snapshot, detects unexpected secondary-window reset advances, and sends localized email notifications to subscribers.
+
+## Stack
+
+- TanStack Start + React 19 + TanStack Router/Query
+- Drizzle ORM + SQLite
+- shadcn/ui + Tailwind CSS
+- Resend + emailmd
+- pino logging
+
+## Environment
+
+Create `.env` from `.env.example`.
 
 ```bash
-pnpm create mugnavo
+cp .env.example .env
 ```
 
-- [React 19](https://react.dev) + [React Compiler](https://react.dev/learn/react-compiler)
-- TanStack [Start](https://tanstack.com/start/latest) + [Router](https://tanstack.com/router/latest) + [Query](https://tanstack.com/query/latest)
-- [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) + [Base UI](https://base-ui.com/) (base-rhea, [`--preset b1au68YWO`](https://ui.shadcn.com/create?preset=b1au68YWO&base=base&template=start&pointer=true))
-- [Vite 8](https://vite.dev) + [Nitro v3](https://nitro.build/)
-- [Drizzle ORM](https://orm.drizzle.team/) + PostgreSQL
-- [Better Auth](https://better-auth.com/)
-- [Oxlint](https://oxc.rs/docs/guide/usage/linter.html) + [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)
+Required for local app/database startup:
 
-> [!TIP]
-> This template is also available as a monorepo, powered by [Vite+](https://viteplus.dev/) and pnpm. See [mugnavo/tanstarter-plus](https://github.com/mugnavo/tanstarter-plus).
+```env
+DATABASE_URL="file:data/codex-reset-record.sqlite"
+VITE_BASE_URL=http://localhost:3000
+```
 
-## Getting Started
+Required for cron checks:
 
-1. [Use this template](https://github.com/new?template_name=tanstarter&template_owner=mugnavo) or create a project using our CLI:
+```env
+CRON_SECRET="replace-with-a-cron-secret"
+CHATGPT_USAGE_AUTHORIZATION="Bearer ..."
+CHATGPT_USAGE_ENDPOINT=https://chatgpt.com
+```
 
-   ```bash
-   pnpm create mugnavo
-   ```
+Required for real email delivery:
 
-2. Create a `.env` file based on [`.env.example`](./.env.example).
+```env
+RESEND_API_KEY="..."
+EMAIL_FROM="Codex Reset Records <notify@example.com>"
+```
 
-3. Generate the initial migration with drizzle-kit, then apply to your database:
+If `RESEND_API_KEY` or `EMAIL_FROM` is missing, reset notifications are not sent and deliveries are recorded as `skipped`.
 
-   ```sh
-   pnpm db generate
-   pnpm db migrate
-   ```
+## Development
 
-   https://orm.drizzle.team/docs/migrations
+```bash
+pnpm db migrate
+pnpm dev
+```
 
-4. Run the development server:
+The app runs at [http://localhost:3000](http://localhost:3000).
 
-   ```bash
-   pnpm dev
-   ```
+Routes:
 
-   The development server should now be running at [http://localhost:3000](http://localhost:3000).
+- `/` redirects to the preferred locale, defaulting to `/zh`.
+- `/zh` and `/en` render the public monitor page.
+- `/zh/unsubscribe` and `/en/unsubscribe` render unsubscribe results.
+- `POST /api/jobs/check-usage` runs the monitor job.
+- `GET /api/unsubscribe?token=...&lang=zh` unsubscribes a subscriber and redirects to the localized result page.
 
-## Deploying to production
+## Database
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/66acdee6-8e42-436f-9943-a67cad998f63/deploy-status)](https://app.netlify.com/projects/mugnavo-tanstarter/deploys)
+Generate and apply migrations:
 
-The [vite config](./vite.config.ts#L19-L20) is configured to use Nitro by default, which supports many [deployment presets](https://nitro.build/deploy) like Netlify, Vercel, Node.js, and more.
+```bash
+pnpm db generate
+pnpm db migrate
+```
 
-Refer to the [TanStack Start hosting docs](https://tanstack.com/start/latest/docs/framework/react/guide/hosting) for more information.
+Monitor tables:
 
-## Issue watchlist
+- `usage_snapshots`
+- `subscribers`
+- `job_runs`
+- `email_deliveries`
 
-- [Template changelog](https://github.com/mugnavo/tanstarter/compare/e79069ce721b70dca601110d04f1884f47da0ed3...main) - Track template updates since this project was created.
-- [Router/Start issues](https://github.com/TanStack/router/issues) - TanStack Start is in RC.
-- [Devtools releases](https://github.com/TanStack/devtools/releases) - TanStack Devtools is in alpha and may still have breaking changes.
-- [Nitro v3 beta](https://nitro.build/blog/v3-beta) - The template is configured with Nitro v3 beta by default.
+## Local Usage Mock
 
-## Goodies
+Start the mock ChatGPT usage endpoint:
 
-#### Upgrading dependencies
+```bash
+pnpm mock:usage
+```
 
-Dependency versions are pinned, so they may be slightly outdated when you create your project. To selectively upgrade packages, run `pnpm deps` or `pnx taze@latest -Ilw --maturity-period 3`.
+Then set:
 
-#### Scripts
+```env
+CHATGPT_USAGE_ENDPOINT=http://localhost:8787
+CHATGPT_USAGE_AUTHORIZATION=mock
+```
 
-We use **pnpm** by default, but you can modify these scripts in [package.json](./package.json) to use your preferred package manager.
+## Trigger Cron Manually
 
-- **`auth:generate`** - Regenerate the [auth db schema](./src/lib/db/schema/auth.schema.ts) if you've made changes to your Better Auth [config](./src/lib/auth/auth.ts).
-- **`db`** - Run [drizzle-kit](https://orm.drizzle.team/docs/kit-overview) commands. (e.g. `pnpm db generate`, `pnpm db studio`)
-- **`ui`** - The shadcn/ui CLI. (e.g. `pnpm ui add button`)
-- **`format`**, **`lint`** - Run Oxfmt and Oxlint, or both via `pnpm check`.
-- **`deps`** - Selectively upgrade dependencies via taze.
+```bash
+curl -X POST "$VITE_BASE_URL/api/jobs/check-usage" \
+  -H "Authorization: Bearer $CRON_SECRET"
+```
 
-#### Utilities
+Or use:
 
-- [`auth/middleware.ts`](./src/lib/auth/middleware.ts) - Sample middleware for enforcing authentication on server functions & API routes.
-- [`theme-toggle.tsx`](./src/components/theme-toggle.tsx), [`theme-provider.tsx`](./src/components/theme-provider.tsx) - A theme toggle and provider for toggling between light and dark mode.
+```bash
+CRON_SECRET="$CRON_SECRET" ./check-usage.sh
+```
 
-## License
+## Verification
 
-Code in this template is public domain via [Unlicense](./LICENSE). Feel free to remove or replace for your own project.
+```bash
+pnpm lint
+pnpm db generate
+pnpm db migrate
+```
 
-## Ecosystem
+Manual checks:
 
-- [@tanstack/intent](https://tanstack.com/intent/latest/docs/getting-started/quick-start-consumers) - Up-to-date skills for your AI agents, auto-synchronized from your installed dependencies.
-- [awesome-tanstack-start](https://github.com/Balastrong/awesome-tanstack-start) - A curated list of awesome resources for TanStack Start.
-- [shadcn/ui Directory](https://ui.shadcn.com/docs/directory), [MCP](https://ui.shadcn.com/docs/mcp), [shoogle.dev](https://shoogle.dev/) - Component directories & registries for shadcn/ui.
-
-## Related templates
-
-- [mugnavo/tanstarter-plus](https://github.com/mugnavo/tanstarter-plus) - A minimal monorepo version of this template, powered by Vite+ and pnpm workspaces.
-- [tsu-moe/tsu-stack](https://github.com/tsu-moe/tsu-stack) - An opinionated and batteries-included monorepo template from Luzefiru, built on tanstarter-plus, with Paraglide.js (i18n), Hono, oRPC, and more.
+- `/` redirects to `/zh` when no locale cookie is set.
+- `/zh` and `/en` show localized content.
+- Language toggle switches between localized routes.
+- Email subscription handles success, duplicate, invalid, and error states.
+- Unsubscribe token updates subscriber status and redirects to localized result page.
+- Cron route rejects missing/invalid secrets.
+- Cron route records baseline, no-change, reset, and error job runs according to usage response state.

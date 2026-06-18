@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "title": "Codex 重置记录",
+    "description": "监测 Codex 使用额度重置，并向订阅者发送邮件通知。"
+  },
+  "nav": {
+    "zh": "中文"
+  },
+  "hero": {
+    "eyebrow": "Codex 重置监测",
+    "title": "Codex 重置记录",
+    "titlePrefix": "当 ",
+    "titleAccent": "Codex",
+    "titleSuffix": " 重置时立即收到通知。",
+    "description": "我们每小时监测 OpenAI Codex。刷新后你会第一时间收到邮件。免费、准确、即时。",
+    "latestReset": "最近重置",
+    "noReset": "尚未记录到重置",
+    "baseline": "监测基线已就绪",
+    "subscribed": " 已订阅"
+  },
+  "subscribe": {
+    "title": "邮件订阅",
+    "description": "下次额度重置后接收通知。",
+    "placeholder": "you@example.com",
+    "submit": "通知我",
+    "success": "订阅成功！我们会发送通知到 ",
+    "duplicate": "这个邮箱已经订阅。",
+    "invalid": "请输入有效的邮箱地址。",
+    "error": "订阅失败，请稍后再试。",
+    "headline": "让下一次 Codex 额度重置主动找到你。",
+    "note": "仅需邮箱。重置检测和邮件发送都在服务端运行。"
+  },
+  "history": {
+    "subTitle": "重置历史",
+    "title": "监测历史",
+    "description": "这里只展示由提前重置产生的 reset_at 推进记录，正常周期续期和初始基线会被隐藏。",
+    "empty": "还没有重置记录。",
+    "secondaryResetAt": "下次每周重置",
+    "requestedAt": "请求时间",
+    "reset": "重置",
+    "records": "条记录",
+    "limit": "显示最近的 30 条记录",
+    "viewFull": "查看完整历史"
+  },
+  "unsubscribe": {
+    "title": "退订",
+    "success": "你已退订 Codex 重置通知。",
+    "invalid": "这个退订链接无效或已过期。",
+    "home": "返回首页"
+  }
+}

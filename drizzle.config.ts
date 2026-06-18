@@ -1,6 +1,6 @@
 import type { Config } from "drizzle-kit";
 
-import { env } from "#/env/server";
+const fileProtocolPattern = /^file:/;
 
 export default {
   out: "./drizzle",
@@ -8,9 +8,8 @@ export default {
   breakpoints: true,
   verbose: true,
   strict: true,
-  dialect: "postgresql",
-  casing: "snake_case",
+  dialect: "sqlite",
   dbCredentials: {
-    url: env.DATABASE_URL,
+    url: process.env.DATABASE_URL?.replace(fileProtocolPattern, "") as string,
   },
 } satisfies Config;

@@ -2,26 +2,25 @@ import { a11yDevtoolsPlugin } from "@tanstack/devtools-a11y/react";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtoolsPanel } from "@tanstack/react-query-devtools";
-import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import { ThemeProvider } from "#/components/theme-provider";
 import { Toaster } from "#/components/ui/sonner";
-import type { AuthQueryResult } from "#/lib/auth/queries";
+import { normalizeLocale } from "#/lib/i18n/routing";
 
 import appCss from "#/styles.css?url";
 
 interface MyRouterContext {
   queryClient: QueryClient;
-  user: AuthQueryResult;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  // Typically we don't need the user immediately in landing pages.
-  // For protected routes with loader data, see /_auth/route.tsx
-  // beforeLoad: ({ context }) => {
-  //   context.queryClient.prefetchQuery(authQueryOptions());
-  // },
   head: () => ({
     meta: [
       {
@@ -32,18 +31,17 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "codex-reset",
+        title: "Codex Reset Records",
       },
       {
         name: "description",
-        content: "A TanStack Start project scaffolded with create-mugnavo.",
+        content: "Monitor Codex usage resets and email subscribers.",
       },
     ],
     links: [
-      // Replace with your icons here, or remove if you have a favicon.ico in public/
       {
         rel: "icon",
-        href: "https://mugnavo.com/favicon.ico",
+        href: "/favicon.ico",
       },
       { rel: "stylesheet", href: appCss },
     ],
@@ -52,9 +50,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: { readonly children: React.ReactNode }) {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  const locale = normalizeLocale(pathname.split("/")[1]);
+
   return (
     // suppress since we're updating the "dark" class in ThemeProvider
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

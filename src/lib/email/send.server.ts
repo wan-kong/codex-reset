@@ -30,9 +30,8 @@ function getAppBaseUrl() {
 }
 
 function createUnsubscribeUrl(appUrl: string, token: string, locale: Locale) {
-  const unsubscribeUrl = new URL("/api/unsubscribe", appUrl);
+  const unsubscribeUrl = new URL(`/${locale}/unsubscribe`, appUrl);
   unsubscribeUrl.searchParams.set("token", token);
-  unsubscribeUrl.searchParams.set("lang", locale);
   return unsubscribeUrl.toString();
 }
 

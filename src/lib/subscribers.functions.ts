@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { normalizeLocale } from "#/lib/i18n/routing";
 import { logger } from "#/lib/logger.server";
-import { createOrReactivateSubscriber } from "#/lib/subscribers.server";
+import { createOrReactivateSubscriber, unsubscribeByToken } from "#/lib/subscribers.server";
 
 export interface SubscribeState {
   message?: string;
@@ -56,4 +56,16 @@ export const $subscribe = createServerFn({ method: "POST" })
         status: "error",
       };
     }
+  });
+
+const unsubscribeInputSchema = z.object({
+  token: z.string(),
+});
+
+export const $unsubscribe = createServerFn({ method: "POST" })
+  .validator(unsubscribeInputSchema)
+  .handler(async ({ data }): Promise<{ ok: boolean }> => {
+    const ok = await unsubscribeByToken(data.token);
+    logger.info("unsubscribe_action.completed", { success: ok });
+    return { ok };
   });

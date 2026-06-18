@@ -44,6 +44,9 @@
   },
   "unsubscribe": {
     "title": "Unsubscribe",
+    "prompt": "Are you sure you want to unsubscribe from Codex reset notifications? Click below to confirm.",
+    "confirm": "Confirm unsubscribe",
+    "pending": "Processing…",
     "success": "You have been unsubscribed from Codex reset notifications.",
     "invalid": "This unsubscribe link is invalid or expired.",
     "home": "Back home"

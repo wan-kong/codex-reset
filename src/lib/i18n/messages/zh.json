@@ -44,6 +44,9 @@
   },
   "unsubscribe": {
     "title": "退订",
+    "prompt": "确认要退订 Codex 重置通知吗？点击下方按钮完成退订。",
+    "confirm": "确认退订",
+    "pending": "处理中…",
     "success": "你已退订 Codex 重置通知。",
     "invalid": "这个退订链接无效或已过期。",
     "home": "返回首页"

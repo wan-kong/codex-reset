@@ -7,23 +7,22 @@ This app monitors `https://chatgpt.com/backend-api/wham/usage`, stores every usa
 ## Stack
 
 - TanStack Start + React 19 + TanStack Router/Query
-- Drizzle ORM + SQLite
+- Drizzle ORM + Cloudflare D1
 - shadcn/ui + Tailwind CSS
 - Resend + emailmd
-- pino logging
+- Cloudflare Workers Observability
 
 ## Environment
 
-Create `.env` from `.env.example`.
+Create `.env` from `.env.example` for local development.
 
 ```bash
 cp .env.example .env
 ```
 
-Required for local app/database startup:
+Required for local app startup:
 
 ```env
-DATABASE_URL="file:data/codex-reset-record.sqlite"
 VITE_BASE_URL=http://localhost:3000
 ```
 
@@ -44,10 +43,21 @@ EMAIL_FROM="Codex Reset Records <notify@example.com>"
 
 If `RESEND_API_KEY` or `EMAIL_FROM` is missing, reset notifications are not sent and deliveries are recorded as `skipped`.
 
+For Cloudflare deployment, set secrets with Wrangler:
+
+```bash
+pnpm wrangler secret put CRON_SECRET
+pnpm wrangler secret put CHATGPT_USAGE_AUTHORIZATION
+pnpm wrangler secret put RESEND_API_KEY
+pnpm wrangler secret put EMAIL_FROM
+```
+
+Set non-secret values in `wrangler.jsonc` under `vars`.
+
 ## Development
 
 ```bash
-pnpm db migrate
+pnpm db:migrate
 pnpm dev
 ```
 
@@ -63,11 +73,25 @@ Routes:
 
 ## Database
 
+Create the D1 database once:
+
+```bash
+pnpm db:create
+```
+
+Then copy the returned database ID into `wrangler.jsonc` at `d1_databases[0].database_id`.
+
 Generate and apply migrations:
 
 ```bash
-pnpm db generate
-pnpm db migrate
+pnpm db:generate
+pnpm db:migrate
+```
+
+Apply migrations to the remote Cloudflare D1 database:
+
+```bash
+pnpm db:migrate:remote
 ```
 
 Monitor tables:
@@ -94,6 +118,24 @@ CHATGPT_USAGE_AUTHORIZATION=mock
 
 ## Trigger Cron Manually
 
+Cloudflare Cron Triggers call `POST /api/jobs/check-usage` every hour via `wrangler.jsonc`:
+
+```jsonc
+"triggers": {
+  "crons": ["0 * * * *"]
+}
+```
+
+The scheduled handler uses the same `Authorization: Bearer $CRON_SECRET` header as `check-usage.sh`.
+
+Cron expressions use UTC time. In local dev, trigger the scheduled handler with:
+
+```bash
+curl "http://localhost:3000/cdn-cgi/handler/scheduled"
+```
+
+The HTTP route is still available for manual checks:
+
 ```bash
 curl -X POST "$VITE_BASE_URL/api/jobs/check-usage" \
   -H "Authorization: Bearer $CRON_SECRET"
@@ -105,12 +147,19 @@ Or use:
 CRON_SECRET="$CRON_SECRET" ./check-usage.sh
 ```
 
+## Deploy
+
+```bash
+pnpm deploy
+```
+
 ## Verification
 
 ```bash
 pnpm lint
-pnpm db generate
-pnpm db migrate
+pnpm build
+pnpm db:generate
+pnpm db:migrate
 ```
 
 Manual checks:

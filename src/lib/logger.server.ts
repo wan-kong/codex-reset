@@ -1,21 +1,16 @@
 import "@tanstack/react-start/server-only";
-import { mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
-
-import pino from "pino";
-
 import { env } from "#/env/server";
 
 type LogContext = Record<string, boolean | null | number | string | string[] | undefined>;
+type LogLevel = "debug" | "error" | "info" | "warn";
 
-const logFileName = "app.log";
 const emailMaskPattern = /^(.).+(@.+)$/;
-
-function getLogFilePath() {
-  const logDir = resolve(process.cwd(), env.LOG_DIR);
-  mkdirSync(logDir, { recursive: true });
-  return join(logDir, logFileName);
-}
+const logLevels: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+};
 
 function cleanContext(context?: LogContext) {
   if (!context) {
@@ -32,17 +27,28 @@ function cleanContext(context?: LogContext) {
   );
 }
 
-const pinoLogger = pino(
-  {
-    level: env.LOG_LEVEL,
-    messageKey: "event",
-    timestamp: pino.stdTimeFunctions.isoTime,
-  },
-  pino.multistream([
-    { stream: process.stdout },
-    { stream: pino.destination({ dest: getLogFilePath(), sync: false }) },
-  ]),
-);
+function normalizeLevel(level: string): LogLevel {
+  return level in logLevels ? (level as LogLevel) : "info";
+}
+
+function shouldLog(level: LogLevel) {
+  return logLevels[level] >= logLevels[normalizeLevel(env.LOG_LEVEL)];
+}
+
+function writeLog(level: LogLevel, event: string, context?: LogContext) {
+  if (!shouldLog(level)) {
+    return;
+  }
+
+  const payload = {
+    level,
+    event,
+    timestamp: new Date().toISOString(),
+    ...cleanContext(context),
+  };
+
+  console[level](JSON.stringify(payload));
+}
 
 export function maskEmail(email: string) {
   return email.replace(emailMaskPattern, "$1***$2");
@@ -50,15 +56,15 @@ export function maskEmail(email: string) {
 
 export const logger = {
   debug(event: string, context?: LogContext) {
-    pinoLogger.debug(cleanContext(context), event);
+    writeLog("debug", event, context);
   },
   error(event: string, context?: LogContext) {
-    pinoLogger.error(cleanContext(context), event);
+    writeLog("error", event, context);
   },
   info(event: string, context?: LogContext) {
-    pinoLogger.info(cleanContext(context), event);
+    writeLog("info", event, context);
   },
   warn(event: string, context?: LogContext) {
-    pinoLogger.warn(cleanContext(context), event);
+    writeLog("warn", event, context);
   },
 };

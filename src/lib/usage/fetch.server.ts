@@ -27,11 +27,34 @@ export async function fetchUsage(): Promise<UsageResponse> {
     endpointHost: new URL(endpoint).host,
   });
 
-  const response = await fetch(endpoint, {
-    cache: "no-store",
-    headers: buildUsageHeaders(),
-    method: "GET",
-  });
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      cache: "no-store",
+      headers: buildUsageHeaders(),
+      method: "GET",
+    });
+  } catch (error) {
+    const cause = error instanceof Error ? error.cause : undefined;
+    const causeMessage =
+      cause instanceof Error
+        ? cause.message
+        : typeof cause === "string"
+          ? cause
+          : cause
+            ? JSON.stringify(cause)
+            : undefined;
+    logger.warn("usage_fetch.network_error", {
+      durationMs: Date.now() - startedAt,
+      cause: causeMessage,
+    });
+    throw new Error(
+      `Usage request failed to reach ${new URL(endpoint).host}${
+        causeMessage ? `: ${causeMessage}` : ""
+      }`,
+      { cause: error },
+    );
+  }
   const durationMs = Date.now() - startedAt;
 
   if (!response.ok) {

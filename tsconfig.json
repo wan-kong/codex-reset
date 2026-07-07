@@ -21,6 +21,6 @@
     },
     "noEmit": true,
     "strictNullChecks": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client", "@cloudflare/workers-types"]
   }
 }

@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "codex-reset",
+  "compatibility_date": "2026-07-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "src/worker.ts",
+  "observability": {
+    "enabled": true,
+  },
+  "triggers": {
+    "crons": ["0 * * * *"],
+  },
+  "vars": {
+    "VITE_BASE_URL": "http://localhost:3000",
+    "CHATGPT_USAGE_ENDPOINT": "https://chatgpt.com",
+    "LOG_LEVEL": "info",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "codex-reset",
+      "database_id": "53829238-2ea2-4fc7-850c-29c96489bcd9",
+      "migrations_dir": "drizzle",
+    },
+  ],
+}

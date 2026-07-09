@@ -10,7 +10,7 @@ interface ResetEmailInput {
 }
 
 export function resetEmailSubject(locale: Locale) {
-  return locale === "en" ? "Codex quota has reset" : "Codex 额度已被重置";
+  return locale === "en" ? "Codex Quota Has Reset" : "Codex 额度已重置";
 }
 
 export function resetEmailMarkdown({ locale, snapshot, unsubscribeUrl, appUrl }: ResetEmailInput) {
@@ -24,49 +24,50 @@ theme: dark
 ---
 
 ::: header
-# Codex Reset Records
+# Codex Reset Monitor
 :::
 
-# Codex quota has reset
+# Codex Quota Has Reset
 
-The monitor detected a new secondary reset window.
+A new quota reset window has been detected.
 
 | Field | Value |
 | --- | --- |
-| Secondary reset_at | ${resetAt} |
-| Requested at | ${requestedAt} |
+| Reset time | ${resetAt} |
+| Checked at | ${requestedAt} |
+| Plan | ${snapshot.planType ?? "Unknown"} |
 
 [View reset history](${appUrl})
 
 ::: footer
-Codex Reset Records | [Unsubscribe](${unsubscribeUrl})
+Codex Reset Monitor | [Unsubscribe](${unsubscribeUrl})
 :::
 `;
   }
 
   return `---
-preheader: "Codex 额度重置"
+preheader: "Codex 额度重置提醒"
 theme: dark
 ---
 
 ::: header
-# Codex Reset Records
+# Codex 额度监控
 :::
 
-# Codex 额度已被重置
+# Codex 额度已重置
 
-监测服务检测到 secondary reset 窗口已经推进。
+监测到新的额度重置窗口已生效。
 
 | 字段 | 值 |
 | --- | --- |
-| secondary reset_at | ${resetAt} |
-| 请求时间 | ${requestedAt} |
-| 计划 | ${snapshot.planType ?? "未知"} |
+| 重置时间 | ${resetAt} |
+| 检查时间 | ${requestedAt} |
+| 套餐 | ${snapshot.planType ?? "未知"} |
 
 [查看历史记录](${appUrl})
 
 ::: footer
-Codex Reset Records | [退订](${unsubscribeUrl})
+Codex 额度监控 | [退订](${unsubscribeUrl})
 :::
 `;
 }

@@ -11,7 +11,7 @@
     "crons": ["0 * * * *"],
   },
   "vars": {
-    "VITE_BASE_URL": "http://localhost:3000",
+    "VITE_BASE_URL": "https://codex.imoment.top",
     "CHATGPT_USAGE_ENDPOINT": "https://chatgpt.com",
     "LOG_LEVEL": "info",
   },

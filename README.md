@@ -39,9 +39,10 @@ Required for real email delivery:
 ```env
 RESEND_API_KEY="..."
 EMAIL_FROM="Codex Reset Records <notify@example.com>"
+NOTICE_USER_MAIL="owner@example.com"
 ```
 
-If `RESEND_API_KEY` or `EMAIL_FROM` is missing, reset notifications are not sent and deliveries are recorded as `skipped`.
+If `RESEND_API_KEY` or `EMAIL_FROM` is missing, reset notifications are not sent and deliveries are recorded as `skipped`. If `NOTICE_USER_MAIL` is configured, usage-check failures are sent to that address separately.
 
 For Cloudflare deployment, set secrets with Wrangler:
 
@@ -50,6 +51,7 @@ pnpm wrangler secret put CRON_SECRET
 pnpm wrangler secret put CHATGPT_USAGE_AUTHORIZATION
 pnpm wrangler secret put RESEND_API_KEY
 pnpm wrangler secret put EMAIL_FROM
+pnpm wrangler secret put NOTICE_USER_MAIL
 ```
 
 Set non-secret values in `wrangler.jsonc` under `vars`.

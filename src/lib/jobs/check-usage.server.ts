@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 
 import { db } from "#/lib/db";
 import { jobRuns, subscribers, usageSnapshots } from "#/lib/db/schema";
-import { sendResetEmails } from "#/lib/email/send.server";
+import { sendResetEmails, sendUsageCheckFailureNotice } from "#/lib/email/send.server";
 import { logger } from "#/lib/logger.server";
 import { fetchUsage } from "#/lib/usage/fetch.server";
 import { toSnapshotInsert } from "#/lib/usage/normalize.server";
@@ -138,17 +138,32 @@ export async function checkUsageReset() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error("usage_check.failed", { error: message });
+    const failureNotice = await sendUsageCheckFailureNotice(message, startedAt).catch(
+      (noticeError: unknown) => {
+        const noticeMessage =
+          noticeError instanceof Error ? noticeError.message : String(noticeError);
+        logger.error("usage_check.failure_notice_error", { error: noticeMessage });
+        return {
+          error: noticeMessage,
+          sent: false,
+          skipped: false,
+        };
+      },
+    );
     const [jobRun] = await db
       .insert(jobRuns)
       .values({
         completedAt: Math.floor(Date.now() / 1000),
         error: message,
+        message: failureNotice.sent
+          ? "Usage check failed. Failure notice sent."
+          : "Usage check failed. Failure notice not sent.",
         startedAt,
         status: "error",
         triggeredReset: false,
       })
       .returning();
 
-    return { error: message, jobRun, snapshot: null, status: "error" };
+    return { error: message, failureNotice, jobRun, snapshot: null, status: "error" };
   }
 }

@@ -9,6 +9,7 @@ const runtimeEnv = {
   CHATGPT_USAGE_ENDPOINT: workerEnv.CHATGPT_USAGE_ENDPOINT,
   RESEND_API_KEY: workerEnv.RESEND_API_KEY,
   EMAIL_FROM: workerEnv.EMAIL_FROM,
+  NOTICE_USER_MAIL: workerEnv.NOTICE_USER_MAIL,
   LOG_LEVEL: workerEnv.LOG_LEVEL,
 };
 
@@ -20,6 +21,7 @@ export const env = createEnv({
     CHATGPT_USAGE_ENDPOINT: z.url().default("https://chatgpt.com"),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+    NOTICE_USER_MAIL: z.email().optional(),
     LOG_LEVEL: z.string().default("info"),
   },
   runtimeEnv,

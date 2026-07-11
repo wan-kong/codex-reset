@@ -25,6 +25,13 @@ export interface EmailSendSummary {
   skipped: boolean;
 }
 
+export interface FailureNoticeSummary {
+  error?: string;
+  providerMessageId?: string | null;
+  sent: boolean;
+  skipped: boolean;
+}
+
 function getAppBaseUrl() {
   return env.VITE_BASE_URL.replace(/\/$/, "");
 }
@@ -33,6 +40,95 @@ function createUnsubscribeUrl(appUrl: string, token: string, locale: Locale) {
   const unsubscribeUrl = new URL(`/${locale}/unsubscribe`, appUrl);
   unsubscribeUrl.searchParams.set("token", token);
   return unsubscribeUrl.toString();
+}
+
+function formatNoticeTime(value: number) {
+  return new Intl.DateTimeFormat("zh", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Shanghai",
+  }).format(new Date(value * 1000));
+}
+
+function failureNoticeMarkdown(error: string, startedAt: number, completedAt: number) {
+  return `---
+preheader: "Codex usage check failed"
+theme: dark
+---
+
+::: header
+# Codex Reset Monitor
+:::
+
+# Usage check failed
+
+The scheduled usage check failed. This is often caused by an expired ChatGPT usage token.
+
+| Field | Value |
+| --- | --- |
+| Started at | ${formatNoticeTime(startedAt)} |
+| Failed at | ${formatNoticeTime(completedAt)} |
+| Likely action | Refresh CHATGPT_USAGE_AUTHORIZATION |
+
+\`\`\`
+${error}
+\`\`\`
+
+::: footer
+Codex Reset Monitor | [Open dashboard](${getAppBaseUrl()})
+:::
+`;
+}
+
+export async function sendUsageCheckFailureNotice(
+  error: string,
+  startedAt: number,
+): Promise<FailureNoticeSummary> {
+  const apiKey = env.RESEND_API_KEY;
+  const from = env.EMAIL_FROM;
+  const to = env.NOTICE_USER_MAIL?.trim();
+  logger.info("usage_failure_notice.started", {
+    hasRecipient: Boolean(to),
+    startedAt,
+  });
+
+  if (!(apiKey && from && to)) {
+    const configError = "RESEND_API_KEY, EMAIL_FROM and NOTICE_USER_MAIL are required";
+    logger.warn("usage_failure_notice.skipped_missing_config", {
+      hasApiKey: Boolean(apiKey),
+      hasFrom: Boolean(from),
+      hasRecipient: Boolean(to),
+    });
+    return { error: configError, sent: false, skipped: true };
+  }
+
+  const completedAt = Math.floor(Date.now() / 1000);
+  const { html, text } = await render(failureNoticeMarkdown(error, startedAt, completedAt));
+  const result = await new Resend(apiKey).emails.send({
+    from,
+    html,
+    subject: "Codex usage check failed",
+    text,
+    to,
+  });
+
+  if (result.error) {
+    logger.warn("usage_failure_notice.failed", {
+      email: maskEmail(to),
+      error: result.error.message,
+    });
+    return { error: result.error.message, sent: false, skipped: false };
+  }
+
+  logger.info("usage_failure_notice.sent", {
+    email: maskEmail(to),
+    providerMessageId: result.data?.id ?? null,
+  });
+  return {
+    providerMessageId: result.data?.id ?? null,
+    sent: true,
+    skipped: false,
+  };
 }
 
 export async function sendResetEmails(

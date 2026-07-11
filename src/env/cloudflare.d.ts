@@ -10,6 +10,7 @@ declare global {
       CHATGPT_USAGE_ENDPOINT?: string;
       RESEND_API_KEY?: string;
       EMAIL_FROM?: string;
+      NOTICE_USER_MAIL?: string;
       LOG_LEVEL?: string;
     }
   }

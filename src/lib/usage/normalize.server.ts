@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { createHash } from "node:crypto";
 
-import type { UsageResponse } from "#/lib/usage/types";
+import { getWeeklyUsageWindow, type UsageResponse } from "#/lib/usage/types";
 
 export function maskUsageEmail(email: string | null | undefined) {
   if (!email) {
@@ -29,9 +29,11 @@ export function toSnapshotInsert(
   usage: UsageResponse,
   eventType: "baseline" | "no_change" | "reset",
 ) {
+  const trackedWindow = getWeeklyUsageWindow(usage);
+
   return {
     eventType,
-    secondaryResetAt: usage.rate_limit.secondary_window.reset_at,
+    secondaryResetAt: trackedWindow.reset_at,
     primaryResetAt: usage.rate_limit.primary_window?.reset_at ?? null,
     requestedAt: Math.floor(Date.now() / 1000),
     accountHash: hashAccount(usage.account_id ?? usage.user_id),

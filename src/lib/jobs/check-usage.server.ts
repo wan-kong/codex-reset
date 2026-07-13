@@ -7,8 +7,7 @@ import { sendResetEmails, sendUsageCheckFailureNotice } from "#/lib/email/send.s
 import { logger } from "#/lib/logger.server";
 import { fetchUsage } from "#/lib/usage/fetch.server";
 import { toSnapshotInsert } from "#/lib/usage/normalize.server";
-
-const DEFAULT_SECONDARY_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+import { getWeeklyUsageWindow, WEEKLY_WINDOW_SECONDS } from "#/lib/usage/types";
 
 export async function checkUsageReset() {
   const startedAt = Math.floor(Date.now() / 1000);
@@ -16,7 +15,8 @@ export async function checkUsageReset() {
 
   try {
     const usage = await fetchUsage();
-    const observedSecondaryResetAt = usage.rate_limit.secondary_window.reset_at;
+    const trackedWindow = getWeeklyUsageWindow(usage);
+    const observedSecondaryResetAt = trackedWindow.reset_at;
     logger.info("usage_check.usage_fetched", { observedSecondaryResetAt });
 
     const latestSnapshot = await db.query.usageSnapshots.findFirst({
@@ -52,8 +52,7 @@ export async function checkUsageReset() {
       return { jobRun, snapshot, status: "baseline" };
     }
 
-    const secondaryWindowSeconds =
-      usage.rate_limit.secondary_window.limit_window_seconds ?? DEFAULT_SECONDARY_WINDOW_SECONDS;
+    const secondaryWindowSeconds = trackedWindow.limit_window_seconds ?? WEEKLY_WINDOW_SECONDS;
     const secondaryResetMovement = observedSecondaryResetAt - latestSnapshot.secondaryResetAt;
     const isUnexpectedReset =
       secondaryResetMovement > 60 * 60 && secondaryResetMovement < secondaryWindowSeconds;

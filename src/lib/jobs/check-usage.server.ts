@@ -7,7 +7,12 @@ import { sendResetEmails, sendUsageCheckFailureNotice } from "#/lib/email/send.s
 import { logger } from "#/lib/logger.server";
 import { fetchUsage } from "#/lib/usage/fetch.server";
 import { toSnapshotInsert } from "#/lib/usage/normalize.server";
-import { getWeeklyUsageWindow, WEEKLY_WINDOW_SECONDS } from "#/lib/usage/types";
+import {
+  getWeeklyUsageWindow,
+  isFullWeeklyWindowFromRequest,
+  isUnexpectedWeeklyReset,
+  WEEKLY_WINDOW_SECONDS,
+} from "#/lib/usage/types";
 
 export async function checkUsageReset() {
   const startedAt = Math.floor(Date.now() / 1000);
@@ -54,8 +59,13 @@ export async function checkUsageReset() {
 
     const secondaryWindowSeconds = trackedWindow.limit_window_seconds ?? WEEKLY_WINDOW_SECONDS;
     const secondaryResetMovement = observedSecondaryResetAt - latestSnapshot.secondaryResetAt;
-    const isUnexpectedReset =
-      secondaryResetMovement > 60 * 60 && secondaryResetMovement < secondaryWindowSeconds;
+    const isFullWeeklyWindow = isFullWeeklyWindowFromRequest(startedAt, observedSecondaryResetAt);
+    const isUnexpectedReset = isUnexpectedWeeklyReset({
+      observedResetAt: observedSecondaryResetAt,
+      previousResetAt: latestSnapshot.secondaryResetAt,
+      requestedAt: startedAt,
+      windowSeconds: secondaryWindowSeconds,
+    });
 
     if (!isUnexpectedReset) {
       const [snapshot] = await db
@@ -64,6 +74,7 @@ export async function checkUsageReset() {
         .returning();
       logger.info("usage_check.no_reset_detected", {
         latestSecondaryResetAt: latestSnapshot.secondaryResetAt,
+        isFullWeeklyWindow,
         observedSecondaryResetAt,
         secondaryResetMovement,
         secondaryWindowSeconds,
@@ -90,6 +101,7 @@ export async function checkUsageReset() {
       .values(toSnapshotInsert(usage, "reset"))
       .returning();
     logger.info("usage_check.reset_recorded", {
+      isFullWeeklyWindow,
       observedSecondaryResetAt,
       secondaryResetMovement,
       secondaryWindowSeconds,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const WEEKLY_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+export const WEEKLY_RESET_REQUEST_TOLERANCE_SECONDS = 5 * 60;
 
 const usageWindowSchema = z.object({
   used_percent: z.number().optional().nullable(),
@@ -23,6 +24,32 @@ export const usageResponseSchema = z.object({
 });
 
 export type UsageResponse = z.infer<typeof usageResponseSchema>;
+
+export function isFullWeeklyWindowFromRequest(requestedAt: number, resetAt: number) {
+  const resetDelay = resetAt - requestedAt;
+
+  return Math.abs(resetDelay - WEEKLY_WINDOW_SECONDS) <= WEEKLY_RESET_REQUEST_TOLERANCE_SECONDS;
+}
+
+export function isUnexpectedWeeklyReset({
+  observedResetAt,
+  previousResetAt,
+  requestedAt,
+  windowSeconds,
+}: {
+  observedResetAt: number;
+  previousResetAt: number;
+  requestedAt: number;
+  windowSeconds: number;
+}) {
+  const resetMovement = observedResetAt - previousResetAt;
+
+  return (
+    resetMovement > 60 * 60 &&
+    resetMovement < windowSeconds &&
+    !isFullWeeklyWindowFromRequest(requestedAt, observedResetAt)
+  );
+}
 
 export function getWeeklyUsageWindow(usage: UsageResponse) {
   const { primary_window: primaryWindow, secondary_window: secondaryWindow } = usage.rate_limit;

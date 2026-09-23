@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { count, desc, eq } from "drizzle-orm";
 
 import { db } from "#/lib/db";
-import { jobRuns, subscribers, usageSnapshots } from "#/lib/db/schema";
+import { jobRuns, resetCredits, subscribers } from "#/lib/db/schema";
 
 export async function getHomeData() {
   const [activeSubscribers] = await db
@@ -12,30 +12,26 @@ export async function getHomeData() {
 
   const [resetCount] = await db
     .select({ value: count() })
-    .from(usageSnapshots)
-    .where(eq(usageSnapshots.eventType, "reset"));
+    .from(resetCredits)
+    .where(eq(resetCredits.eventType, "new_credit"));
 
-  const latestReset = await db.query.usageSnapshots.findFirst({
-    orderBy: desc(usageSnapshots.secondaryResetAt),
-    where: eq(usageSnapshots.eventType, "reset"),
-  });
-
-  const latestSnapshot = await db.query.usageSnapshots.findFirst({
-    orderBy: desc(usageSnapshots.secondaryResetAt),
+  const latestReset = await db.query.resetCredits.findFirst({
+    orderBy: desc(resetCredits.grantedAt),
+    where: eq(resetCredits.eventType, "new_credit"),
   });
 
   const latestJob = await db.query.jobRuns.findFirst({
     orderBy: desc(jobRuns.startedAt),
   });
 
-  const history = await db.query.usageSnapshots.findMany({
-    orderBy: desc(usageSnapshots.requestedAt),
+  const history = await db.query.resetCredits.findMany({
+    orderBy: desc(resetCredits.detectedAt),
     limit: 30,
   });
 
-  const detections = await db.query.usageSnapshots.findMany({
-    where: eq(usageSnapshots.eventType, "reset"),
-    orderBy: desc(usageSnapshots.requestedAt),
+  const detections = await db.query.resetCredits.findMany({
+    where: eq(resetCredits.eventType, "new_credit"),
+    orderBy: desc(resetCredits.grantedAt),
     limit: 3,
   });
 
@@ -44,7 +40,6 @@ export async function getHomeData() {
     history,
     latestJob,
     latestReset,
-    latestSnapshot,
     resetCount: resetCount?.value ?? 0,
     subscriberCount: activeSubscribers?.value ?? 0,
   };

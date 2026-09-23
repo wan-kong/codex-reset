@@ -27,6 +27,41 @@ export const usageSnapshots = sqliteTable(
   ],
 );
 
+export const resetCredits = sqliteTable(
+  "reset_credits",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    creditId: text("credit_id").notNull().unique(),
+    eventType: text("event_type", { enum: ["baseline", "new_credit"] }).notNull(),
+    resetType: text("reset_type").notNull(),
+    isSupportedByPlan: integer("is_supported_by_plan", { mode: "boolean" }).notNull(),
+    status: text("status").notNull(),
+    grantedAt: integer("granted_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    redeemStartedAt: integer("redeem_started_at"),
+    redeemedAt: integer("redeemed_at"),
+    profileImageUrl: text("profile_image_url"),
+    profileUserId: text("profile_user_id"),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    detectedAt: integer("detected_at").notNull(),
+    rawJson: text("raw_json").notNull(),
+    createdAt: integer("created_at")
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (table) => [
+    index("reset_credits_event_type_idx").on(table.eventType),
+    index("reset_credits_granted_at_idx").on(table.grantedAt),
+  ],
+);
+
+export const creditMonitorState = sqliteTable("credit_monitor_state", {
+  id: integer("id").primaryKey(),
+  lastCheckedAt: integer("last_checked_at").notNull(),
+  lastAvailableCount: integer("last_available_count").notNull(),
+});
+
 export const subscribers = sqliteTable(
   "subscribers",
   {
@@ -62,12 +97,15 @@ export const jobRuns = sqliteTable(
     triggeredReset: integer("triggered_reset", { mode: "boolean" }).notNull().default(false),
     observedSecondaryResetAt: integer("observed_secondary_reset_at"),
     snapshotId: integer("snapshot_id").references(() => usageSnapshots.id),
+    resetCreditId: integer("reset_credit_id").references(() => resetCredits.id),
+    observedAvailableCount: integer("observed_available_count"),
     message: text("message"),
     error: text("error"),
   },
   (table) => [
     index("job_runs_started_at_idx").on(table.startedAt),
     index("job_runs_status_idx").on(table.status),
+    index("job_runs_reset_credit_id_idx").on(table.resetCreditId),
   ],
 );
 
@@ -75,9 +113,8 @@ export const emailDeliveries = sqliteTable(
   "email_deliveries",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    snapshotId: integer("snapshot_id")
-      .notNull()
-      .references(() => usageSnapshots.id),
+    snapshotId: integer("snapshot_id").references(() => usageSnapshots.id),
+    resetCreditId: integer("reset_credit_id").references(() => resetCredits.id),
     subscriberId: integer("subscriber_id").references(() => subscribers.id),
     email: text("email").notNull(),
     locale: text("locale", { enum: ["zh", "en"] }).notNull(),
@@ -93,10 +130,12 @@ export const emailDeliveries = sqliteTable(
     index("email_deliveries_snapshot_id_idx").on(table.snapshotId),
     index("email_deliveries_subscriber_id_idx").on(table.subscriberId),
     index("email_deliveries_status_idx").on(table.status),
+    index("email_deliveries_reset_credit_id_idx").on(table.resetCreditId),
   ],
 );
 
 export type UsageSnapshot = typeof usageSnapshots.$inferSelect;
+export type ResetCredit = typeof resetCredits.$inferSelect;
 export type Subscriber = typeof subscribers.$inferSelect;
 export type JobRun = typeof jobRuns.$inferSelect;
 export type EmailDelivery = typeof emailDeliveries.$inferSelect;

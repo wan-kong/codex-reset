@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { env } from "#/env/server";
-import { checkUsageReset } from "#/lib/jobs/check-usage.server";
+import { checkResetCredits } from "#/lib/jobs/check-usage.server";
 import { logger } from "#/lib/logger.server";
 
 export const Route = createFileRoute("/api/jobs/check-usage")({
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/api/jobs/check-usage")({
         }
 
         logger.info("cron_route.authorized");
-        const result = await checkUsageReset();
+        const result = await checkResetCredits();
         const status = result.status === "error" ? 500 : 200;
         logger.info("cron_route.completed", {
           jobRunId: result.jobRun.id,

@@ -1,13 +1,13 @@
 import "@tanstack/react-start/server-only";
 import { env } from "#/env/server";
 import { logger } from "#/lib/logger.server";
-import { type UsageResponse, usageResponseSchema } from "#/lib/usage/types";
+import { type ResetCreditsResponse, resetCreditsResponseSchema } from "#/lib/reset-credits/types";
 
-function getUsageEndpoint() {
-  return `${env.CHATGPT_USAGE_ENDPOINT}/backend-api/wham/usage`;
+function getResetCreditsEndpoint() {
+  return `${env.CHATGPT_USAGE_ENDPOINT}/backend-api/wham/rate-limit-reset-credits`;
 }
 
-function buildUsageHeaders() {
+function buildResetCreditsHeaders() {
   const authorization = env.CHATGPT_USAGE_AUTHORIZATION;
   if (!authorization) {
     throw new Error("CHATGPT_USAGE_AUTHORIZATION is required");
@@ -20,10 +20,10 @@ function buildUsageHeaders() {
   };
 }
 
-export async function fetchUsage(): Promise<UsageResponse> {
-  const endpoint = getUsageEndpoint();
+export async function fetchResetCredits(): Promise<ResetCreditsResponse> {
+  const endpoint = getResetCreditsEndpoint();
   const startedAt = Date.now();
-  logger.info("usage_fetch.started", {
+  logger.info("reset_credit_fetch.started", {
     endpointHost: new URL(endpoint).host,
   });
 
@@ -31,7 +31,7 @@ export async function fetchUsage(): Promise<UsageResponse> {
   try {
     response = await fetch(endpoint, {
       cache: "no-store",
-      headers: buildUsageHeaders(),
+      headers: buildResetCreditsHeaders(),
       method: "GET",
     });
   } catch (error) {
@@ -44,36 +44,38 @@ export async function fetchUsage(): Promise<UsageResponse> {
           : cause
             ? JSON.stringify(cause)
             : undefined;
-    logger.warn("usage_fetch.network_error", {
+    logger.warn("reset_credit_fetch.network_error", {
       durationMs: Date.now() - startedAt,
       cause: causeMessage,
     });
     throw new Error(
-      `Usage request failed to reach ${new URL(endpoint).host}${
+      `Reset credit request failed to reach ${new URL(endpoint).host}${
         causeMessage ? `: ${causeMessage}` : ""
       }`,
       { cause: error },
     );
   }
-  const durationMs = Date.now() - startedAt;
 
+  const durationMs = Date.now() - startedAt;
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    logger.warn("usage_fetch.request_failed", {
+    logger.warn("reset_credit_fetch.request_failed", {
       durationMs,
       status: response.status,
     });
-    throw new Error(`Usage request failed with ${response.status}: ${body.slice(0, 240)}`);
+    throw new Error(`Reset credit request failed with ${response.status}: ${body.slice(0, 240)}`);
   }
 
   const json = await response.json();
-  const parsed = usageResponseSchema.safeParse(json);
+  const parsed = resetCreditsResponseSchema.safeParse(json);
   if (!parsed.success) {
-    logger.warn("usage_fetch.shape_mismatch", { durationMs });
-    throw new Error(`Usage response shape mismatch: ${parsed.error.message}`);
+    logger.warn("reset_credit_fetch.shape_mismatch", { durationMs });
+    throw new Error(`Reset credit response shape mismatch: ${parsed.error.message}`);
   }
 
-  logger.info("usage_fetch.completed", {
+  logger.info("reset_credit_fetch.completed", {
+    availableCount: parsed.data.available_count,
+    creditCount: parsed.data.credits.length,
     durationMs,
     status: response.status,
   });

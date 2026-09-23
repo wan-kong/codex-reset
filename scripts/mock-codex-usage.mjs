@@ -1,50 +1,27 @@
 import { createServer } from "node:http";
 
 const port = Number(process.env.MOCK_USAGE_PORT ?? 8787);
-const baseSecondaryResetAt = 1_779_225_534;
-
-const buildUsageResponse = () => ({
-  account_id: "user-mock-codex-reset-record",
-  additional_rate_limits: null,
-  code_review_rate_limit: null,
-  credits: {
-    approx_cloud_messages: [0, 0],
-    approx_local_messages: [0, 0],
-    balance: "0",
-    has_credits: false,
-    overage_limit_reached: false,
-    unlimited: false,
-  },
-  email: "user@example.com",
-  plan_type: "plus",
-  promo: null,
-  rate_limit: {
-    allowed: true,
-    limit_reached: false,
-    primary_window: {
-      limit_window_seconds: 18_000,
-      reset_after_seconds: 5277,
-      reset_at: 1_779_275_534,
-      used_percent: 66,
+const buildResetCreditsResponse = () => ({
+  credits: [
+    {
+      id: "RateLimitResetCredit_mock_baseline",
+      reset_type: "codex_rate_limits",
+      is_supported_by_plan: true,
+      status: "available",
+      granted_at: "2026-09-22T18:34:10.328681Z",
+      expires_at: "2026-10-22T18:34:10.328681Z",
+      redeem_started_at: null,
+      redeemed_at: null,
+      profile_image_url: "https://openaiassets.blob.core.windows.net/$web/codex/codex-icon-200.png",
+      profile_user_id: "Codex Team",
+      title: "完全重置（每周 + 5 小时）",
+      description: "感谢使用 Codex！你已获赠一次免费的速率限制重置机会。",
     },
-    secondary_window: {
-      limit_window_seconds: 604_800,
-      reset_after_seconds: 604_800,
-      reset_at: baseSecondaryResetAt,
-      used_percent: 22,
-    },
-  },
-  rate_limit_reached_type: null,
-  rate_limit_reset_credits: {
-    available_count: 0,
-    can_reset: false,
-  },
-  referral_beacon: null,
-  spend_control: {
-    individual_limit: null,
-    reached: false,
-  },
-  user_id: "user-mock-codex-reset-record",
+  ],
+  available_count: 1,
+  total_earned_count: 0,
+  immediate_reset_purchase_eligible: false,
+  history_enabled: true,
 });
 
 const writeJson = (response, statusCode, payload) => {
@@ -55,8 +32,8 @@ const writeJson = (response, statusCode, payload) => {
 };
 
 const server = createServer((request, response) => {
-  if (request.method === "GET" && request.url === "/backend-api/wham/usage") {
-    writeJson(response, 200, buildUsageResponse());
+  if (request.method === "GET" && request.url === "/backend-api/wham/rate-limit-reset-credits") {
+    writeJson(response, 200, buildResetCreditsResponse());
     return;
   }
 

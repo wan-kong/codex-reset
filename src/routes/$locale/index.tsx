@@ -48,7 +48,7 @@ function HomePage() {
   const homeQuery = useSuspenseQuery(homeDataQueryOptions(locale));
   const data = homeQuery.data;
   const latestResetLabel = data.latestReset
-    ? formatUnixTime(data.latestReset.secondaryResetAt, locale)
+    ? formatUnixTime(data.latestReset.grantedAt, locale)
     : messages.hero.noReset;
 
   return (
@@ -105,10 +105,10 @@ function HomePage() {
             </div>
             <div className="flex flex-1">
               {data.detections.length > 0 ? (
-                data.detections.map((snapshot, index) => (
+                data.detections.map((credit, index) => (
                   <article
                     className="relative flex-1 border-r border-border/80 bg-background/40 px-5 py-7 transition hover:bg-background/80 sm:px-7"
-                    key={snapshot.id}
+                    key={credit.id}
                   >
                     <div className="flex items-center justify-between gap-4">
                       <span className="font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
@@ -119,7 +119,7 @@ function HomePage() {
                       </span>
                     </div>
                     <time className="mt-6 block font-mono text-xl leading-none font-semibold">
-                      {formatUnixTime(snapshot.secondaryResetAt, locale)}
+                      {formatUnixTime(credit.grantedAt, locale)}
                     </time>
                   </article>
                 ))
@@ -157,19 +157,19 @@ function HomePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">#</TableHead>
-                  <TableHead>{messages.history.requestedAt}</TableHead>
-                  <TableHead>{messages.history.secondaryResetAt}</TableHead>
+                  <TableHead>{messages.history.grantedAt}</TableHead>
+                  <TableHead>{messages.history.expiresAt}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.history.map((snapshot, index) => (
-                  <TableRow key={snapshot.id}>
+                {data.history.map((credit, index) => (
+                  <TableRow key={credit.id}>
                     <TableCell className="font-mono text-muted-foreground">{index + 1}</TableCell>
                     <TableCell className="font-mono">
-                      {formatUnixTime(snapshot.requestedAt, locale)}
+                      {formatUnixTime(credit.grantedAt, locale)}
                     </TableCell>
                     <TableCell className="font-mono">
-                      {formatUnixTime(snapshot.secondaryResetAt, locale)}
+                      {formatUnixTime(credit.expiresAt, locale)}
                     </TableCell>
                   </TableRow>
                 ))}

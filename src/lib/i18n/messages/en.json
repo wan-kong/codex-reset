@@ -1,43 +1,43 @@
 {
   "meta": {
-    "title": "Codex Reset Records",
-    "description": "Monitor Codex usage resets and email subscribers."
+    "title": "Codex Reset Credit Records",
+    "description": "Monitor newly granted Codex reset credits and notify subscribers."
   },
   "nav": {
     "zh": "中文"
   },
   "hero": {
-    "eyebrow": "Codex reset monitor",
-    "title": "Codex Reset Records",
+    "eyebrow": "Codex reset credit monitor",
+    "title": "Codex Reset Credit Records",
     "titlePrefix": "Get notified instantly when ",
     "titleAccent": "Codex",
-    "titleSuffix": "resets.",
-    "description": "We monitor OpenAI Codex every hour. You’ll get an email the moment it’s refreshed. Free, accurate, instant.",
-    "latestReset": "Latest reset",
-    "noReset": "No reset recorded yet",
+    "titleSuffix": "grants a new reset credit.",
+    "description": "We check OpenAI Codex reset credits every hour. You’ll get an email when a new credit is granted, then choose when to redeem it.",
+    "latestReset": "Latest credit",
+    "noReset": "No new credit recorded yet",
     "baseline": "Monitoring baseline is ready",
     "subscribed": " already subscribed"
   },
   "subscribe": {
     "title": "Email subscription",
-    "description": "Receive a notification after the next quota reset.",
+    "description": "Receive a notification when the next reset credit is granted.",
     "placeholder": "you@example.com",
     "submit": "NOTIFY ME",
     "success": "All right! We'll notify you at ",
     "duplicate": "This email is already subscribed.",
     "invalid": "Enter a valid email address.",
     "error": "Subscription failed. Try again later.",
-    "headline": "Let the next Codex quota reset find you.",
-    "note": "Email only. Reset detection and delivery both run on the server."
+    "headline": "Know as soon as your next Codex reset credit arrives.",
+    "note": "Email only. Reset credit detection and delivery both run on the server."
   },
   "history": {
-    "subTitle": "Reset history",
+    "subTitle": "Credit history",
     "title": "Monitor History",
-    "description": "Only early reset_at advances are shown here. Normal renewals and initial baselines are hidden.",
-    "empty": "No reset records yet.",
-    "secondaryResetAt": "Next weekly reset",
-    "requestedAt": "Requested at",
-    "reset": "Reset",
+    "description": "New credits are identified by credit ID. The first check only establishes a baseline and sends no notification.",
+    "empty": "No new reset credits yet.",
+    "grantedAt": "Granted at",
+    "expiresAt": "Expires at",
+    "reset": "New credit",
     "records": "records",
     "limit": "show recently 30 records",
     "viewFull": "View full history"

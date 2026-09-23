@@ -1,159 +1,169 @@
 import "@tanstack/react-start/server-only";
-import { desc, eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import { db } from "#/lib/db";
-import { jobRuns, subscribers, usageSnapshots } from "#/lib/db/schema";
+import { creditMonitorState, jobRuns, resetCredits, subscribers } from "#/lib/db/schema";
 import { sendResetEmails, sendUsageCheckFailureNotice } from "#/lib/email/send.server";
 import { logger } from "#/lib/logger.server";
-import { fetchUsage } from "#/lib/usage/fetch.server";
-import { toSnapshotInsert } from "#/lib/usage/normalize.server";
-import {
-  getWeeklyUsageWindow,
-  isFullWeeklyWindowFromRequest,
-  isUnexpectedWeeklyReset,
-  WEEKLY_WINDOW_SECONDS,
-} from "#/lib/usage/types";
+import { fetchResetCredits } from "#/lib/reset-credits/fetch.server";
+import { toResetCreditInsert } from "#/lib/reset-credits/normalize.server";
 
-export async function checkUsageReset() {
+const MONITOR_STATE_ID = 1;
+
+async function updateMonitorState(lastCheckedAt: number, lastAvailableCount: number) {
+  await db
+    .insert(creditMonitorState)
+    .values({ id: MONITOR_STATE_ID, lastAvailableCount, lastCheckedAt })
+    .onConflictDoUpdate({
+      target: creditMonitorState.id,
+      set: { lastAvailableCount, lastCheckedAt },
+    });
+}
+
+export async function checkResetCredits() {
   const startedAt = Math.floor(Date.now() / 1000);
-  logger.info("usage_check.started", { startedAt });
+  logger.info("reset_credit_check.started", { startedAt });
 
   try {
-    const usage = await fetchUsage();
-    const trackedWindow = getWeeklyUsageWindow(usage);
-    const observedSecondaryResetAt = trackedWindow.reset_at;
-    logger.info("usage_check.usage_fetched", { observedSecondaryResetAt });
-
-    const latestSnapshot = await db.query.usageSnapshots.findFirst({
-      orderBy: desc(usageSnapshots.secondaryResetAt),
-    });
-    logger.info("usage_check.latest_snapshot_loaded", {
-      latestSecondaryResetAt: latestSnapshot?.secondaryResetAt,
+    const response = await fetchResetCredits();
+    const monitorState = await db.query.creditMonitorState.findFirst({
+      where: eq(creditMonitorState.id, MONITOR_STATE_ID),
     });
 
-    if (!latestSnapshot) {
-      const [snapshot] = await db
-        .insert(usageSnapshots)
-        .values(toSnapshotInsert(usage, "baseline"))
-        .returning();
-      logger.info("usage_check.baseline_recorded", {
-        observedSecondaryResetAt,
-        snapshotId: snapshot.id,
-      });
+    if (!monitorState) {
+      if (response.credits.length > 0) {
+        await db
+          .insert(resetCredits)
+          .values(
+            response.credits.map((credit) => toResetCreditInsert(credit, "baseline", startedAt)),
+          )
+          .onConflictDoNothing({ target: resetCredits.creditId });
+      }
+      await updateMonitorState(startedAt, response.available_count);
 
       const [jobRun] = await db
         .insert(jobRuns)
         .values({
           completedAt: Math.floor(Date.now() / 1000),
-          message: "Initial baseline recorded; notification skipped.",
-          observedSecondaryResetAt,
-          snapshotId: snapshot.id,
+          message: `Initial reset-credit baseline recorded with ${response.credits.length} credit(s); notification skipped.`,
+          observedAvailableCount: response.available_count,
           startedAt,
           status: "baseline",
           triggeredReset: false,
         })
         .returning();
 
-      return { jobRun, snapshot, status: "baseline" };
+      logger.info("reset_credit_check.baseline_recorded", {
+        availableCount: response.available_count,
+        creditCount: response.credits.length,
+        jobRunId: jobRun.id,
+      });
+      return { jobRun, newCredits: [], status: "baseline" };
     }
 
-    const secondaryWindowSeconds = trackedWindow.limit_window_seconds ?? WEEKLY_WINDOW_SECONDS;
-    const secondaryResetMovement = observedSecondaryResetAt - latestSnapshot.secondaryResetAt;
-    const isFullWeeklyWindow = isFullWeeklyWindowFromRequest(startedAt, observedSecondaryResetAt);
-    const isUnexpectedReset = isUnexpectedWeeklyReset({
-      observedResetAt: observedSecondaryResetAt,
-      previousResetAt: latestSnapshot.secondaryResetAt,
-      requestedAt: startedAt,
-      windowSeconds: secondaryWindowSeconds,
-    });
+    const observedIds = response.credits.map((credit) => credit.id);
+    const knownCredits =
+      observedIds.length > 0
+        ? await db.query.resetCredits.findMany({
+            columns: { creditId: true },
+            where: inArray(resetCredits.creditId, observedIds),
+          })
+        : [];
+    const knownIds = new Set(knownCredits.map((credit) => credit.creditId));
+    const unseenCredits = response.credits.filter((credit) => !knownIds.has(credit.id));
+    const insertedCredits =
+      unseenCredits.length > 0
+        ? await db
+            .insert(resetCredits)
+            .values(
+              unseenCredits.map((credit) => toResetCreditInsert(credit, "new_credit", startedAt)),
+            )
+            .onConflictDoNothing({ target: resetCredits.creditId })
+            .returning()
+        : [];
 
-    if (!isUnexpectedReset) {
-      const [snapshot] = await db
-        .insert(usageSnapshots)
-        .values(toSnapshotInsert(usage, "no_change"))
-        .returning();
-      logger.info("usage_check.no_reset_detected", {
-        latestSecondaryResetAt: latestSnapshot.secondaryResetAt,
-        isFullWeeklyWindow,
-        observedSecondaryResetAt,
-        secondaryResetMovement,
-        secondaryWindowSeconds,
-        snapshotId: snapshot.id,
-      });
+    await updateMonitorState(startedAt, response.available_count);
+
+    if (insertedCredits.length === 0) {
       const [jobRun] = await db
         .insert(jobRuns)
         .values({
           completedAt: Math.floor(Date.now() / 1000),
-          message: "No unexpected secondary reset detected.",
-          observedSecondaryResetAt,
-          snapshotId: snapshot.id,
+          message: "No new reset credit detected.",
+          observedAvailableCount: response.available_count,
           startedAt,
           status: "no_change",
           triggeredReset: false,
         })
         .returning();
 
-      return { jobRun, snapshot, status: "no_change" };
+      logger.info("reset_credit_check.no_new_credit", {
+        availableCount: response.available_count,
+        creditCount: response.credits.length,
+        jobRunId: jobRun.id,
+      });
+      return { jobRun, newCredits: [], status: "no_change" };
     }
 
-    const [snapshot] = await db
-      .insert(usageSnapshots)
-      .values(toSnapshotInsert(usage, "reset"))
-      .returning();
-    logger.info("usage_check.reset_recorded", {
-      isFullWeeklyWindow,
-      observedSecondaryResetAt,
-      secondaryResetMovement,
-      secondaryWindowSeconds,
-      snapshotId: snapshot.id,
+    logger.info("reset_credit_check.new_credits_recorded", {
+      availableCount: response.available_count,
+      creditIds: insertedCredits.map((credit) => credit.creditId),
     });
-
     const activeSubscribers = await db.query.subscribers.findMany({
       where: eq(subscribers.status, "active"),
     });
-    logger.info("usage_check.active_subscribers_loaded", {
-      activeSubscriberCount: activeSubscribers.length,
-    });
 
-    const emailSummary = await sendResetEmails(
-      activeSubscribers.map((subscriber) => ({
-        email: subscriber.email,
-        locale: subscriber.locale,
-        subscriberId: subscriber.id,
-        unsubscribeToken: subscriber.unsubscribeToken,
-      })),
-      snapshot,
+    const emailSummaries = [];
+    for (const credit of insertedCredits) {
+      emailSummaries.push(
+        await sendResetEmails(
+          activeSubscribers.map((subscriber) => ({
+            email: subscriber.email,
+            locale: subscriber.locale,
+            subscriberId: subscriber.id,
+            unsubscribeToken: subscriber.unsubscribeToken,
+          })),
+          credit,
+        ),
+      );
+    }
+    const emailSummary = emailSummaries.reduce(
+      (summary, current) => ({
+        attempted: summary.attempted + current.attempted,
+        errors: [...summary.errors, ...current.errors],
+        failed: summary.failed + current.failed,
+        sent: summary.sent + current.sent,
+        skipped: summary.skipped || current.skipped,
+      }),
+      { attempted: 0, errors: [], failed: 0, sent: 0, skipped: false },
     );
-    logger.info("usage_check.email_summary", {
-      attempted: emailSummary.attempted,
-      failed: emailSummary.failed,
-      sent: emailSummary.sent,
-      skipped: emailSummary.skipped,
-    });
+    const newestCredit = insertedCredits.reduce((newest, credit) =>
+      credit.grantedAt > newest.grantedAt ? credit : newest,
+    );
 
     const [jobRun] = await db
       .insert(jobRuns)
       .values({
         completedAt: Math.floor(Date.now() / 1000),
         error: emailSummary.errors.join("\n") || null,
-        message: `Reset recorded. Email sent: ${emailSummary.sent}/${emailSummary.attempted}.`,
-        observedSecondaryResetAt,
-        snapshotId: snapshot.id,
+        message: `${insertedCredits.length} new reset credit(s) recorded. Email sent: ${emailSummary.sent}/${emailSummary.attempted}.`,
+        observedAvailableCount: response.available_count,
+        resetCreditId: newestCredit.id,
         startedAt,
         status: "reset",
         triggeredReset: true,
       })
       .returning();
 
-    return { emailSummary, jobRun, snapshot, status: "reset" };
+    return { emailSummary, jobRun, newCredits: insertedCredits, status: "reset" };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error("usage_check.failed", { error: message });
+    logger.error("reset_credit_check.failed", { error: message });
     const failureNotice = await sendUsageCheckFailureNotice(message, startedAt).catch(
       (noticeError: unknown) => {
         const noticeMessage =
           noticeError instanceof Error ? noticeError.message : String(noticeError);
-        logger.error("usage_check.failure_notice_error", { error: noticeMessage });
+        logger.error("reset_credit_check.failure_notice_error", { error: noticeMessage });
         return {
           error: noticeMessage,
           sent: false,
@@ -167,14 +177,14 @@ export async function checkUsageReset() {
         completedAt: Math.floor(Date.now() / 1000),
         error: message,
         message: failureNotice.sent
-          ? "Usage check failed. Failure notice sent."
-          : "Usage check failed. Failure notice not sent.",
+          ? "Reset credit check failed. Failure notice sent."
+          : "Reset credit check failed. Failure notice not sent.",
         startedAt,
         status: "error",
         triggeredReset: false,
       })
       .returning();
 
-    return { error: message, failureNotice, jobRun, snapshot: null, status: "error" };
+    return { error: message, failureNotice, jobRun, newCredits: [], status: "error" };
   }
 }

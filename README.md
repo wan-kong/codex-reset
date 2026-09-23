@@ -2,7 +2,7 @@
 
 TanStack Start rewrite of the Codex reset monitor.
 
-This app monitors `https://chatgpt.com/backend-api/wham/usage`, stores every usage snapshot, detects unexpected secondary-window reset advances, and sends localized email notifications to subscribers.
+This app monitors `https://chatgpt.com/backend-api/wham/rate-limit-reset-credits`, stores reset credits by their stable IDs, detects newly granted credits, and sends localized email notifications to subscribers.
 
 ## Stack
 
@@ -42,7 +42,7 @@ EMAIL_FROM="Codex Reset Records <notify@example.com>"
 NOTICE_USER_MAIL="owner@example.com"
 ```
 
-If `RESEND_API_KEY` or `EMAIL_FROM` is missing, reset notifications are not sent and deliveries are recorded as `skipped`. If `NOTICE_USER_MAIL` is configured, usage-check failures are sent to that address separately.
+If `RESEND_API_KEY` or `EMAIL_FROM` is missing, reset-credit notifications are not sent and deliveries are recorded as `skipped`. If `NOTICE_USER_MAIL` is configured, check failures are sent to that address separately.
 
 For Cloudflare deployment, set secrets with Wrangler:
 
@@ -98,14 +98,17 @@ pnpm db:migrate:remote
 
 Monitor tables:
 
-- `usage_snapshots`
+- `reset_credits`
+- `credit_monitor_state`
 - `subscribers`
 - `job_runs`
 - `email_deliveries`
 
+The first successful check establishes a baseline and never sends notifications, including when the API returns no credits. Later checks identify new credits by `credits[].id`.
+
 ## Local Usage Mock
 
-Start the mock ChatGPT usage endpoint:
+Start the mock ChatGPT reset-credit endpoint:
 
 ```bash
 pnpm mock:usage
@@ -159,7 +162,6 @@ pnpm deploy
 
 ```bash
 pnpm lint
-pnpm build
 pnpm db:generate
 pnpm db:migrate
 ```
@@ -172,4 +174,4 @@ Manual checks:
 - Email subscription handles success, duplicate, invalid, and error states.
 - Unsubscribe token updates subscriber status and redirects to localized result page.
 - Cron route rejects missing/invalid secrets.
-- Cron route records baseline, no-change, reset, and error job runs according to usage response state.
+- Cron route records baseline, no-change, new-credit, and error outcomes according to the reset-credit response.

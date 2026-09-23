@@ -4,7 +4,7 @@ import { Resend } from "resend";
 
 import { env } from "#/env/server";
 import { db } from "#/lib/db";
-import type { UsageSnapshot } from "#/lib/db/schema";
+import type { ResetCredit } from "#/lib/db/schema";
 import { emailDeliveries } from "#/lib/db/schema";
 import { resetEmailMarkdown, resetEmailSubject } from "#/lib/email/templates";
 import type { Locale } from "#/lib/i18n/routing";
@@ -52,7 +52,7 @@ function formatNoticeTime(value: number) {
 
 function failureNoticeMarkdown(error: string, startedAt: number, completedAt: number) {
   return `---
-preheader: "Codex usage check failed"
+preheader: "Codex reset credit check failed"
 theme: dark
 ---
 
@@ -60,9 +60,9 @@ theme: dark
 # Codex Reset Monitor
 :::
 
-# Usage check failed
+# Reset credit check failed
 
-The scheduled usage check failed. This is often caused by an expired ChatGPT usage token.
+The scheduled reset credit check failed. This is often caused by an expired ChatGPT token.
 
 | Field | Value |
 | --- | --- |
@@ -133,19 +133,19 @@ export async function sendUsageCheckFailureNotice(
 
 export async function sendResetEmails(
   recipients: Recipient[],
-  snapshot: UsageSnapshot,
+  credit: ResetCredit,
 ): Promise<EmailSendSummary> {
   const apiKey = env.RESEND_API_KEY;
   const from = env.EMAIL_FROM;
   logger.info("email_send.started", {
     recipientCount: recipients.length,
-    snapshotId: snapshot.id,
+    resetCreditId: credit.id,
   });
 
   if (!(apiKey && from)) {
     logger.warn("email_send.skipped_missing_config", {
       recipientCount: recipients.length,
-      snapshotId: snapshot.id,
+      resetCreditId: credit.id,
     });
     if (recipients.length > 0) {
       const skippedDeliveries: (typeof emailDeliveries.$inferInsert)[] = recipients.map(
@@ -153,7 +153,7 @@ export async function sendResetEmails(
           email: recipient.email,
           error: "RESEND_API_KEY and EMAIL_FROM are required to send email",
           locale: recipient.locale,
-          snapshotId: snapshot.id,
+          resetCreditId: credit.id,
           status: "skipped",
           subscriberId: recipient.subscriberId,
         }),
@@ -186,7 +186,7 @@ export async function sendResetEmails(
       logger.info("email_send.recipient_started", {
         email: maskedEmail,
         locale: recipient.locale,
-        snapshotId: snapshot.id,
+        resetCreditId: credit.id,
         subscriberId: recipient.subscriberId,
       });
       const unsubscribeUrl = createUnsubscribeUrl(
@@ -198,7 +198,7 @@ export async function sendResetEmails(
         resetEmailMarkdown({
           appUrl,
           locale: recipient.locale,
-          snapshot,
+          credit,
           unsubscribeUrl,
         }),
       );
@@ -215,14 +215,14 @@ export async function sendResetEmails(
         logger.warn("email_send.recipient_failed", {
           email: maskedEmail,
           error: result.error.message,
-          snapshotId: snapshot.id,
+          resetCreditId: credit.id,
           subscriberId: recipient.subscriberId,
         });
         await db.insert(emailDeliveries).values({
           email: recipient.email,
           error: result.error.message,
           locale: recipient.locale,
-          snapshotId: snapshot.id,
+          resetCreditId: credit.id,
           status: "failed",
           subscriberId: recipient.subscriberId,
         });
@@ -236,7 +236,7 @@ export async function sendResetEmails(
         email: recipient.email,
         locale: recipient.locale,
         providerMessageId: result.data?.id ?? null,
-        snapshotId: snapshot.id,
+        resetCreditId: credit.id,
         status: "sent",
         subscriberId: recipient.subscriberId,
       });
@@ -245,7 +245,7 @@ export async function sendResetEmails(
       logger.info("email_send.recipient_sent", {
         email: maskedEmail,
         providerMessageId: result.data?.id ?? null,
-        snapshotId: snapshot.id,
+        resetCreditId: credit.id,
         subscriberId: recipient.subscriberId,
       });
     } catch (error) {
@@ -253,14 +253,14 @@ export async function sendResetEmails(
       logger.error("email_send.recipient_error", {
         email: maskEmail(recipient.email),
         error: message,
-        snapshotId: snapshot.id,
+        resetCreditId: credit.id,
         subscriberId: recipient.subscriberId,
       });
       await db.insert(emailDeliveries).values({
         email: recipient.email,
         error: message,
         locale: recipient.locale,
-        snapshotId: snapshot.id,
+        resetCreditId: credit.id,
         status: "failed",
         subscriberId: recipient.subscriberId,
       });
@@ -274,7 +274,7 @@ export async function sendResetEmails(
     failed: summary.failed,
     sent: summary.sent,
     skipped: summary.skipped,
-    snapshotId: snapshot.id,
+    resetCreditId: credit.id,
   });
 
   return summary;
